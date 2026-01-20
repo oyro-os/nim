@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }} ${{ matrix.goarch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        goarch: [amd64, arm64]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set target
+        id: target
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest) GOOS=linux ;;
+            macos-latest) GOOS=darwin ;;
+            windows-latest) GOOS=windows ;;
+          esac
+          case "${{ matrix.goarch }}" in
+            amd64) ARCH_NAME=x86_64 ;;
+            arm64) ARCH_NAME=aarch64 ;;
+          esac
+          echo "goos=$GOOS" >> "$GITHUB_OUTPUT"
+          echo "arch=$ARCH_NAME" >> "$GITHUB_OUTPUT"
+          if [[ "$GOOS" == "windows" ]]; then
+            echo "binext=.exe" >> "$GITHUB_OUTPUT"
+          else
+            echo "binext=" >> "$GITHUB_OUTPUT"
+          fi
+          VERSION="${GITHUB_REF_NAME}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "artifact=nim-$GOOS-$ARCH_NAME-$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build
+        shell: bash
+        env:
+          GOOS: ${{ steps.target.outputs.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          OUTDIR="dist"
+          mkdir -p "$OUTDIR"
+          BIN="${{ steps.target.outputs.artifact }}${{ steps.target.outputs.binext }}"
+          go build -o "$OUTDIR/$BIN" .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.target.outputs.artifact }}
+          path: dist/${{ steps.target.outputs.artifact }}${{ steps.target.outputs.binext }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
