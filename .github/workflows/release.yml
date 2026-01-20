@@ -47,7 +47,7 @@ jobs:
         env:
           GOOS: ${{ steps.target.outputs.goos }}
           GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: 0
+          CGO_ENABLED: 1
         run: |
           OUTDIR="dist"
           mkdir -p "$OUTDIR"
