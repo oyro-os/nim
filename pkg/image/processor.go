@@ -16,6 +16,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/gen2brain/avif"
 	"github.com/jackmordaunt/icns"
+	"github.com/jdeng/goheif"
 	"github.com/kpfaulkner/jxl-go"
 	"github.com/sergeymakinen/go-bmp"
 	"github.com/sergeymakinen/go-ico"
@@ -83,7 +84,7 @@ func OpenImage(filename string) (image.Image, error) {
 	case "icns":
 		img, err = icns.Decode(file)
 	case "heic", "heif":
-		img, err = decodeHEIF(file)
+		img, err = goheif.Decode(file)
 	case "jxl":
 		// Reset file pointer to beginning
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
