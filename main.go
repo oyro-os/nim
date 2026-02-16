@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"nim/cmd"
+	"github.com/oyro-os/nim/cmd"
 )
 
 func main() {

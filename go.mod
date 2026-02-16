@@ -1,4 +1,4 @@
-module nim
+module github.com/oyro-os/nim
 
 go 1.24
 

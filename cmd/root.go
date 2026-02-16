@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/oyro-os/nim/pkg/image"
 	"github.com/spf13/cobra"
-	"nim/pkg/image"
 )
 
 var (
@@ -32,107 +32,148 @@ It can resize, crop, pad, and convert images between formats.`,
   nim input.jpg output.png -w 800 -H 600
   nim input.jpg output.png`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// Handle positional arguments
-		if len(args) > 2 {
-			return fmt.Errorf("too many arguments: expected at most 2 arguments (input and output files)")
-		} else if len(args) == 2 {
-			// Two args: input and output
-			inputFile = args[0]
-			outputFile = args[1]
-		} else if len(args) == 1 {
-			// One arg: output only
-			outputFile = args[0]
+		resolvedInput, resolvedOutput, err := resolveInputOutput(args, inputFile, outputFile)
+		if err != nil {
+			return err
 		}
 
-		// Check if input and output files are provided
-		if inputFile == "" {
-			return fmt.Errorf("input file is required")
+		targetWidth, targetHeight, err := parseSizeArg(size, width, height)
+		if err != nil {
+			return err
 		}
-		if outputFile == "" {
-			return fmt.Errorf("output file is required")
+		if err := validateDimension("width", targetWidth); err != nil {
+			return err
 		}
-
-		// Parse size if provided
-		if size != "" {
-			parts := strings.Split(size, "x")
-			if len(parts) != 2 {
-				return fmt.Errorf("invalid size format: %s (expected WIDTHxHEIGHT)", size)
-			}
-
-			w, err := strconv.Atoi(parts[0])
-			if err != nil {
-				return fmt.Errorf("invalid width in size: %s", parts[0])
-			}
-
-			h, err := strconv.Atoi(parts[1])
-			if err != nil {
-				return fmt.Errorf("invalid height in size: %s", parts[1])
-			}
-
-			width = w
-			height = h
+		if err := validateDimension("height", targetHeight); err != nil {
+			return err
+		}
+		if err := validateQuality(quality); err != nil {
+			return err
 		}
 
-		// Parse resize mode
-		var mode image.ResizeMode
-		switch strings.ToLower(resizeMode) {
-		case "fit":
-			mode = image.ResizeModeFit
-		case "fill":
-			mode = image.ResizeModeFill
-		case "stretch":
-			mode = image.ResizeModeStretch
-		default:
-			return fmt.Errorf("invalid resize mode: %s", resizeMode)
+		mode, err := parseResizeMode(resizeMode)
+		if err != nil {
+			return err
 		}
 
-		// Parse pad color
-		var padColorRGB [3]uint8
-		if padColor != "" {
-			// Remove # if present
-			padColor = strings.TrimPrefix(padColor, "#")
-
-			// Parse hex color
-			if len(padColor) == 6 {
-				r, err := strconv.ParseUint(padColor[0:2], 16, 8)
-				if err != nil {
-					return fmt.Errorf("invalid pad color: %s", padColor)
-				}
-				g, err := strconv.ParseUint(padColor[2:4], 16, 8)
-				if err != nil {
-					return fmt.Errorf("invalid pad color: %s", padColor)
-				}
-				b, err := strconv.ParseUint(padColor[4:6], 16, 8)
-				if err != nil {
-					return fmt.Errorf("invalid pad color: %s", padColor)
-				}
-				padColorRGB = [3]uint8{uint8(r), uint8(g), uint8(b)}
-			} else {
-				return fmt.Errorf("invalid pad color format: %s (expected #RRGGBB)", padColor)
-			}
-		} else {
-			// Default to white
-			padColorRGB = [3]uint8{255, 255, 255}
+		padColorRGB, err := parsePadColor(padColor)
+		if err != nil {
+			return err
 		}
 
-		// Create options
 		options := image.ProcessOptions{
-			Width:        width,
-			Height:       height,
+			Width:        targetWidth,
+			Height:       targetHeight,
 			ResizeMode:   mode,
 			Quality:      quality,
 			OutputFormat: outputFormat,
 			PadColor:     padColorRGB,
 		}
 
-		// Process the image
-		if err := image.ProcessImage(inputFile, outputFile, options); err != nil {
+		if err := image.ProcessImage(resolvedInput, resolvedOutput, options); err != nil {
 			return err
 		}
 
-		fmt.Printf("Image processed successfully: %s -> %s\n", inputFile, outputFile)
+		fmt.Printf("Image processed successfully: %s -> %s\n", resolvedInput, resolvedOutput)
 		return nil
 	},
+}
+
+func resolveInputOutput(args []string, input, output string) (string, string, error) {
+	switch len(args) {
+	case 0:
+	case 1:
+		output = args[0]
+	case 2:
+		input = args[0]
+		output = args[1]
+	default:
+		return "", "", fmt.Errorf("too many arguments: expected at most 2 arguments (input and output files)")
+	}
+
+	if input == "" {
+		return "", "", fmt.Errorf("input file is required")
+	}
+	if output == "" {
+		return "", "", fmt.Errorf("output file is required")
+	}
+	return input, output, nil
+}
+
+func parseSizeArg(sizeArg string, currentWidth, currentHeight int) (int, int, error) {
+	normalized := strings.TrimSpace(strings.ToLower(sizeArg))
+	if normalized == "" {
+		return currentWidth, currentHeight, nil
+	}
+
+	wStr, hStr, ok := strings.Cut(normalized, "x")
+	if !ok || strings.Contains(hStr, "x") {
+		return 0, 0, fmt.Errorf("invalid size format: %s (expected WIDTHxHEIGHT)", sizeArg)
+	}
+
+	w, err := strconv.Atoi(strings.TrimSpace(wStr))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid width in size: %s", wStr)
+	}
+	h, err := strconv.Atoi(strings.TrimSpace(hStr))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid height in size: %s", hStr)
+	}
+
+	return w, h, nil
+}
+
+func parseResizeMode(modeArg string) (image.ResizeMode, error) {
+	switch strings.ToLower(strings.TrimSpace(modeArg)) {
+	case "fit":
+		return image.ResizeModeFit, nil
+	case "fill":
+		return image.ResizeModeFill, nil
+	case "stretch":
+		return image.ResizeModeStretch, nil
+	default:
+		return "", fmt.Errorf("invalid resize mode: %s", modeArg)
+	}
+}
+
+func parsePadColor(padColorArg string) ([3]uint8, error) {
+	var zero [3]uint8
+	normalized := strings.TrimSpace(strings.TrimPrefix(padColorArg, "#"))
+	if normalized == "" {
+		return [3]uint8{255, 255, 255}, nil
+	}
+	if len(normalized) != 6 {
+		return zero, fmt.Errorf("invalid pad color format: %s (expected #RRGGBB)", padColorArg)
+	}
+
+	r, err := strconv.ParseUint(normalized[0:2], 16, 8)
+	if err != nil {
+		return zero, fmt.Errorf("invalid pad color: %s", padColorArg)
+	}
+	g, err := strconv.ParseUint(normalized[2:4], 16, 8)
+	if err != nil {
+		return zero, fmt.Errorf("invalid pad color: %s", padColorArg)
+	}
+	b, err := strconv.ParseUint(normalized[4:6], 16, 8)
+	if err != nil {
+		return zero, fmt.Errorf("invalid pad color: %s", padColorArg)
+	}
+
+	return [3]uint8{uint8(r), uint8(g), uint8(b)}, nil
+}
+
+func validateDimension(name string, value int) error {
+	if value <= 0 {
+		return fmt.Errorf("%s must be greater than 0", name)
+	}
+	return nil
+}
+
+func validateQuality(value int) error {
+	if value < 1 || value > 100 {
+		return fmt.Errorf("quality must be between 1 and 100")
+	}
+	return nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -153,7 +194,7 @@ func init() {
 	rootCmd.Flags().IntVarP(&height, "height", "H", 512, "Target height")
 	rootCmd.Flags().StringVarP(&size, "size", "s", "", "Target size in format WIDTHxHEIGHT (e.g., 512x512)")
 	rootCmd.Flags().StringVarP(&resizeMode, "mode", "m", "fit", "Resize mode (fit, fill, stretch)")
-	rootCmd.Flags().IntVarP(&quality, "quality", "q", 85, "Output quality (1-100, only for JPEG)")
+	rootCmd.Flags().IntVarP(&quality, "quality", "q", 85, "Output quality (1-100)")
 	rootCmd.Flags().StringVarP(&outputFormat, "format", "f", "", "Output format (jpg, png, gif, etc.)")
 	rootCmd.Flags().StringVarP(&padColor, "pad-color", "p", "#FFFFFF", "Padding color in hex format (#RRGGBB)")
 }
