@@ -12,6 +12,12 @@ Nim is a cross-platform CLI tool for image manipulation written in Go. It can re
 
 ## Installation
 
+### Scoop
+```powershell
+scoop bucket add rocky https://github.com/i-rocky/bucket
+scoop install nim
+```
+
 ### From Source
 
 1. Clone the repository:
