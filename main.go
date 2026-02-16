@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/oyro-os/nim/cmd"
+	"github.com/i-rocky/pixr/cmd"
 )
 
 func main() {

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/oyro-os/nim/pkg/image"
+	"github.com/i-rocky/pixr/pkg/image"
 	"github.com/spf13/cobra"
 )
 
@@ -22,15 +22,15 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "nim [input] [output]",
-	Short: "Nim is an image manipulation tool",
-	Long: `Nim is a cross-platform CLI tool for image manipulation.
+	Use:   "pixr [input] [output]",
+	Short: "Pixr is an image manipulation tool",
+	Long: `Pixr is a cross-platform CLI tool for image manipulation.
 It can resize, crop, pad, and convert images between formats.`,
-	Example: `  nim -i input.jpg -o output.png -w 800 -H 600
-  nim -i input.png -o output.jpg -s 1024x768 -q 90
-  nim -i input.gif -o output.webp -s 300x300 -m stretch -p "#FF0000"
-  nim input.jpg output.png -w 800 -H 600
-  nim input.jpg output.png`,
+	Example: `  pixr -i input.jpg -o output.png -w 800 -H 600
+  pixr -i input.png -o output.jpg -s 1024x768 -q 90
+  pixr -i input.gif -o output.webp -s 300x300 -m stretch -p "#FF0000"
+  pixr input.jpg output.png -w 800 -H 600
+  pixr input.jpg output.png`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		resolvedInput, resolvedOutput, err := resolveInputOutput(args, inputFile, outputFile)
 		if err != nil {
@@ -184,8 +184,8 @@ func Execute() error {
 
 func init() {
 	// Disable the built-in help flag
-	rootCmd.PersistentFlags().BoolP("help", "", false, "Help for nim")
-	rootCmd.Flags().BoolP("help", "?", false, "Help for nim")
+	rootCmd.PersistentFlags().BoolP("help", "", false, "Help for pixr")
+	rootCmd.Flags().BoolP("help", "?", false, "Help for pixr")
 
 	// Define flags and bind them to variables
 	rootCmd.Flags().StringVarP(&inputFile, "input", "i", "", "Input image file")

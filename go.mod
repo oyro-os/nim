@@ -1,4 +1,4 @@
-module github.com/oyro-os/nim
+module github.com/i-rocky/pixr
 
 go 1.24
 
