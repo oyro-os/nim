@@ -87,6 +87,25 @@ jobs:
         with:
           path: dist
 
+      - name: Package windows zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          WIN_DIR=$(ls -d dist/nim-windows-x86_64-v* | head -n1)
+          WIN_EXE=$(ls "$WIN_DIR"/nim-windows-x86_64-v*.exe | head -n1)
+          VER="${WIN_EXE##*-v}"
+          VER="${VER%.exe}"
+          TMP_DIR="$(mktemp -d)"
+          cp "$WIN_EXE" "$TMP_DIR/nim.exe"
+          (cd "$TMP_DIR" && zip -9 "$GITHUB_WORKSPACE/dist/nim-windows-x86_64-v${VER}.zip" nim.exe)
+          rm -rf "$TMP_DIR"
+
+      - name: Checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist && find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt)
+
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
