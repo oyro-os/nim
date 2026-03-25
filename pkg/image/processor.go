@@ -37,19 +37,19 @@ const (
 
 // ProcessOptions contains all options for image processing
 type ProcessOptions struct {
-	Width      int        // Target width
-	Height     int        // Target height
-	ResizeMode ResizeMode // How to resize the image
-	Quality    int        // Output quality (1-100, only for JPEG)
-	OutputFormat string   // Output format (jpg, png, gif)
-	PadColor   [3]uint8   // RGB color to use for padding
+	Width        int        // Target width
+	Height       int        // Target height
+	ResizeMode   ResizeMode // How to resize the image
+	Quality      int        // Output quality (1-100)
+	OutputFormat string     // Output format (jpg, png, gif)
+	PadColor     [3]uint8   // RGB color to use for padding
 }
 
 // DefaultOptions returns the default processing options
 func DefaultOptions() ProcessOptions {
 	return ProcessOptions{
 		Width:        800,
-		Height:       600,
+		Height:       512,
 		ResizeMode:   ResizeModeFit,
 		Quality:      85,
 		OutputFormat: "",
@@ -108,6 +108,18 @@ func OpenImage(filename string) (image.Image, error) {
 
 // ProcessImage processes an image according to the provided options
 func ProcessImage(inputPath, outputPath string, options ProcessOptions) error {
+	if options.Width <= 0 {
+		return fmt.Errorf("width must be greater than 0")
+	}
+	if options.Height <= 0 {
+		return fmt.Errorf("height must be greater than 0")
+	}
+	if options.Quality < 1 || options.Quality > 100 {
+		return fmt.Errorf("quality must be between 1 and 100")
+	}
+
+	options.OutputFormat = strings.ToLower(strings.TrimSpace(options.OutputFormat))
+
 	// Open the input file using our custom function that supports more formats
 	src, err := OpenImage(inputPath)
 	if err != nil {
@@ -116,7 +128,7 @@ func ProcessImage(inputPath, outputPath string, options ProcessOptions) error {
 
 	// Determine output format if not specified
 	if options.OutputFormat == "" {
-		options.OutputFormat = strings.TrimPrefix(filepath.Ext(outputPath), ".")
+		options.OutputFormat = strings.ToLower(strings.TrimPrefix(filepath.Ext(outputPath), "."))
 		if options.OutputFormat == "" {
 			// Default to JPEG if no extension is provided
 			options.OutputFormat = "jpg"
@@ -155,7 +167,7 @@ func ProcessImage(inputPath, outputPath string, options ProcessOptions) error {
 	defer out.Close()
 
 	// Save the image in the specified format
-	switch strings.ToLower(options.OutputFormat) {
+	switch options.OutputFormat {
 	case "jpg", "jpeg":
 		err = jpeg.Encode(out, resized, &jpeg.Options{Quality: options.Quality})
 	case "png":

@@ -1,4 +1,4 @@
-module nim
+module github.com/i-rocky/pixr
 
 go 1.24
 

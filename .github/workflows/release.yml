@@ -54,7 +54,7 @@ jobs:
           fi
           VERSION="${GITHUB_REF_NAME}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "artifact=nim-${{ matrix.goos }}-$ARCH_NAME-$VERSION" >> "$GITHUB_OUTPUT"
+          echo "artifact=pixr-${{ matrix.goos }}-$ARCH_NAME-$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build
         shell: bash
@@ -91,13 +91,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          WIN_DIR=$(ls -d dist/nim-windows-x86_64-v* | head -n1)
-          WIN_EXE=$(ls "$WIN_DIR"/nim-windows-x86_64-v*.exe | head -n1)
+          WIN_DIR=$(ls -d dist/pixr-windows-x86_64-v* | head -n1)
+          WIN_EXE=$(ls "$WIN_DIR"/pixr-windows-x86_64-v*.exe | head -n1)
           VER="${WIN_EXE##*-v}"
           VER="${VER%.exe}"
           TMP_DIR="$(mktemp -d)"
+          cp "$WIN_EXE" "$TMP_DIR/pixr.exe"
           cp "$WIN_EXE" "$TMP_DIR/nim.exe"
-          (cd "$TMP_DIR" && zip -9 "$GITHUB_WORKSPACE/dist/nim-windows-x86_64-v${VER}.zip" nim.exe)
+          (cd "$TMP_DIR" && zip -9 "$GITHUB_WORKSPACE/dist/pixr-windows-x86_64-v${VER}.zip" pixr.exe nim.exe)
           rm -rf "$TMP_DIR"
 
       - name: Checksums

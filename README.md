@@ -1,12 +1,12 @@
-# Nim - Image Manipulation Tool
+# Pixr - Image Manipulation Tool
 
-Nim is a cross-platform CLI tool for image manipulation written in Go. It can resize, crop, pad, and convert images between formats.
+Pixr is a cross-platform CLI tool for image manipulation written in Go. It can resize, crop, pad, and convert images between formats.
 
 ## Features
 
 - Resize images with different modes (fit, fill, stretch)
 - Convert between common image formats (JPEG, PNG, GIF)
-- Adjust output quality for JPEG images
+- Adjust output quality for lossy output formats
 - Customize padding color
 - Cross-platform support
 
@@ -22,48 +22,54 @@ scoop install nim
 
 1. Clone the repository:
    ```
-   git clone https://github.com/oyro-os/nim.git
-   cd nim
+   git clone https://github.com/i-rocky/pixr.git
+   cd pixr
    ```
 
 2. Build the binary:
    ```
-   go build -o nim
+   go build -o pixr
    ```
 
 3. (Optional) Move the binary to a directory in your PATH:
    ```
    # Linux/macOS
-   sudo mv nim /usr/local/bin/
+   sudo mv pixr /usr/local/bin/
 
    # Windows
-   # Move nim.exe to a directory in your PATH
+   # Move pixr.exe to a directory in your PATH
    ```
+
+### Go Install
+
+```
+go install github.com/i-rocky/pixr@latest
+```
 
 ## Usage
 
 Basic usage:
 
 ```
-nim -i input.jpg -o output.png -w 800 -H 600
+pixr -i input.jpg -o output.png -w 800 -H 600
 ```
 
 or with combined size:
 
 ```
-nim -i input.jpg -o output.png -s 800x600
+pixr -i input.jpg -o output.png -s 800x600
 ```
 
 You can also use positional arguments:
 
 ```
-nim input.jpg output.png -w 800 -H 600
+pixr input.jpg output.png -w 800 -H 600
 ```
 
 or even simpler:
 
 ```
-nim input.jpg output.png
+pixr input.jpg output.png
 ```
 
 ### Options
@@ -82,7 +88,7 @@ Note: You can also provide input and output files as positional arguments:
   - `fit`: Resize the image to fit within the specified dimensions while maintaining aspect ratio
   - `fill`: Resize the image to fill the specified dimensions while maintaining aspect ratio and crops any excess
   - `stretch`: Resize the image to the specified dimensions without maintaining aspect ratio
-- `--quality`, `-q`: Output quality (1-100, only for JPEG) (default: 85)
+- `--quality`, `-q`: Output quality (1-100) (default: 85)
 - `--format`, `-f`: Output format (jpg, png, gif, etc.) (default: determined from output filename)
 - `--pad-color`, `-p`: Padding color in hex format (#RRGGBB) (default: #FFFFFF)
 
@@ -90,27 +96,27 @@ Note: You can also provide input and output files as positional arguments:
 
 Resize an image to fit within 800x600 pixels:
 ```
-nim -i input.jpg -o output.jpg -w 800 -H 600 -m fit
+pixr -i input.jpg -o output.jpg -w 800 -H 600 -m fit
 ```
 
 Resize and crop an image to exactly 300x300 pixels:
 ```
-nim -i input.png -o output.jpg -s 300x300 -m fill
+pixr -i input.png -o output.jpg -s 300x300 -m fill
 ```
 
 Resize an image to 1024x768 pixels without maintaining aspect ratio:
 ```
-nim -i input.gif -o output.png -s 1024x768 -m stretch
+pixr -i input.gif -o output.png -s 1024x768 -m stretch
 ```
 
 Convert an image to JPEG with 90% quality:
 ```
-nim -i input.png -o output.jpg -q 90
+pixr -i input.png -o output.jpg -q 90
 ```
 
 Resize an image with a red background for padding:
 ```
-nim -i input.png -o output.png -w 800 -H 600 -m fit -p "#FF0000"
+pixr -i input.png -o output.png -w 800 -H 600 -m fit -p "#FF0000"
 ```
 
 ## Supported Image Formats
@@ -126,17 +132,18 @@ nim -i input.png -o output.png -w 800 -H 600 -m fit -p "#FF0000"
 - ICO (.ico)
 - ICNS (.icns)
 
-### Partially Supported (Read Only, Will Convert to PNG for Writing)
+### Partially Supported (Read Only)
 - HEIC/HEIF (.heic, .heif)
 - JPEG XL (.jxl)
-- JPEG 2000 (.jp2)
 
-Note: For partially supported formats, the tool will read the image correctly but will convert it to PNG when writing. This is because:
+Note: For partially supported formats, Pixr can read the source image, but you must write to a supported output format (for example PNG/JPEG/WebP). This is because:
 - The goheif library (github.com/jdeng/goheif) only supports decoding HEIC/HEIF images, not encoding them
 - The jxl-go library (github.com/kpfaulkner/jxl-go) only supports decoding JXL images, not encoding them
-- There is no Go library available that supports encoding to JPEG 2000 format
 
-If you need to write to these formats, you'll need to use a different tool after processing with Nim.
+### Not Supported
+- JPEG 2000 (.jp2) for both decoding and encoding
+
+If you need to write to partially supported formats or work with unsupported formats, use another tool after processing with Pixr.
 
 ## License
 
